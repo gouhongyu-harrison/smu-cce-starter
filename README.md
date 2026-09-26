@@ -53,8 +53,17 @@ This repo is a beginner-friendly finance data project with notebooks and a small
 - `lessons/` contains the course instructions and guided exercises.
 - `src/app.py` contains the Streamlit interface: ticker input, analysis selector, Run button, and results display.
 - `src/analysis.py` contains reusable functions that fetch filings, news, stock prices, and analyst recommendations using `yfinance`.
-- `scripts/lesson5.yaml` is an AWS CloudFormation template for a VPC, public subnet, internet route, security group, and EC2 instance. It is intended for `us-east-1` and expects an SSH source CIDR when creating the stack. Restrict SSH to your own IP when possible. The template creates the networking and instance resources; it does not install or start the Streamlit app on the instance.
+- `scripts/lesson5.yaml` is an AWS CloudFormation template that creates a VPC, public subnet, internet route, security group, and EC2 instance, then installs and starts the Streamlit app. It is intended for `us-east-1` and opens port 8501 for browser access.
 - `requirements.txt` lists the Python packages the project needs, such as `yfinance`, `pandas`, and `streamlit`.
+
+## Deploy the App to an AWS Sandbox
+
+1. Open CloudFormation in the AWS Sandbox and create a stack in `us-east-1` using `scripts/lesson5.yaml`.
+2. Keep the default public GitHub repository URL, or enter the HTTPS URL of your own public fork.
+3. Wait for the stack status to become `CREATE_COMPLETE`. The EC2 instance installs the app during its first boot, so the URL may take a few minutes to respond.
+4. Open the `ApplicationURL` shown in the stack outputs.
+
+The Sandbox must allow the stack to create VPC networking and EC2 resources. Delete the CloudFormation stack when finished to remove the resources and avoid ongoing charges.
 
 The notebooks demonstrate each analysis step by step. The Streamlit app brings those analyses together in one interface. Both approaches request live market data from Yahoo Finance.
 
@@ -81,5 +90,7 @@ The notebooks demonstrate each analysis step by step. The Streamlit app brings t
   .
   ├── lessons/          # Step-by-step course instructions
   ├── notebooks/        # Starter financial-data notebooks
+   ├── scripts/          # CloudFormation deployment templates
+   ├── src/              # Streamlit app and reusable analysis functions
   ├── requirements.txt  # Python dependencies
   └── README.md         # Course overview
