@@ -31,9 +31,19 @@ If you are new to Python, follow these steps in order.
 
 6. In the browser, open one of the files in the `notebooks/` folder and run the cells. For example, the notebooks fetch stock data from Yahoo Finance and print the results in the terminal.
 
+## Run the Streamlit App
+
+After installing the packages above, start the app from the repository root:
+
+```bash
+python -m streamlit run src/app.py
+```
+
+Open the local URL shown in the terminal, usually `http://localhost:8501`. Enter a ticker symbol, choose **Filings**, **News**, or **Stock price ratings**, and select **Run**. The app retrieves data from Yahoo Finance, so an internet connection is required.
+
 ## Code Walkthrough
 
-This repo is a beginner-friendly finance data project built around Jupyter notebooks.
+This repo is a beginner-friendly finance data project with notebooks and a small Streamlit app.
 
 - `notebooks/` contains the main examples:
   - `filings.ipynb` gets a company's latest financial statements using `yfinance.Ticker(...)`.
@@ -41,9 +51,12 @@ This repo is a beginner-friendly finance data project built around Jupyter noteb
   - `stock_price_ratings.ipynb` gets the current stock price and analyst recommendation history.
 
 - `lessons/` contains the course instructions and guided exercises.
+- `src/app.py` contains the Streamlit interface: ticker input, analysis selector, Run button, and results display.
+- `src/analysis.py` contains reusable functions that fetch filings, news, stock prices, and analyst recommendations using `yfinance`.
+- `scripts/lesson5.yaml` is an AWS CloudFormation template for a VPC, public subnet, internet route, security group, and EC2 instance. It is intended for `us-east-1` and expects an SSH source CIDR when creating the stack. Restrict SSH to your own IP when possible. The template creates the networking and instance resources; it does not install or start the Streamlit app on the instance.
 - `requirements.txt` lists the Python packages the project needs, such as `yfinance`, `pandas`, and `streamlit`.
 
-The app works like this: you pick a stock ticker such as `MU` or `GOOG`, open a notebook, and run the code cell. The notebook uses Yahoo Finance to request live market data, then prints the results in a readable format. Each notebook focuses on a different type of financial information, so the project becomes a simple data pipeline for stock analysis.
+The notebooks demonstrate each analysis step by step. The Streamlit app brings those analyses together in one interface. Both approaches request live market data from Yahoo Finance.
 
  # Cloud Computing for Economics: Starter Repo 
 

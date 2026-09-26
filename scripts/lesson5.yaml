@@ -1,0 +1,120 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Student VPC with a public subnet and a small EC2 instance in us-east-1.
+
+Parameters:
+  SSHLocation:
+    Type: String
+    Description: CIDR range allowed to connect over SSH; use your public IP with /32 when possible.
+    AllowedPattern: '^(\d{1,3}\.){3}\d{1,3}/\d{1,2}$'
+    ConstraintDescription: Enter an IPv4 CIDR block, for example 203.0.113.10/32.
+
+Rules:
+  RequireUsEast1:
+    Assertions:
+      - Assert: !Equals [!Ref AWS::Region, us-east-1]
+        AssertDescription: Deploy this template in us-east-1 because the AMI is region-specific.
+
+Resources:
+  # Create an isolated network and allow DNS lookups for instances in the VPC.
+  StudentVPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-vpc'
+
+  # Connect the VPC to the public internet.
+  StudentInternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-igw'
+
+  # Gateway attachments do not support Tags in CloudFormation.
+  VPCInternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref StudentInternetGateway
+      VpcId: !Ref StudentVPC
+
+  # Place the instance in a public subnet that automatically receives a public IP.
+  StudentPublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref StudentVPC
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-subnet'
+
+  # Route internet-bound subnet traffic through the Internet Gateway.
+  StudentPublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref StudentVPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-routes'
+
+  # Route and subnet association resources do not support Tags in CloudFormation.
+  PublicInternetRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCInternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref StudentPublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref StudentInternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref StudentPublicRouteTable
+      SubnetId: !Ref StudentPublicSubnet
+
+  # Permit SSH from the supplied CIDR and access to the project's Streamlit port.
+  StudentInstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow restricted SSH and Streamlit web access.
+      VpcId: !Ref StudentVPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: !Ref SSHLocation
+          Description: SSH from the specified student IP range.
+        - IpProtocol: tcp
+          FromPort: 8501
+          ToPort: 8501
+          CidrIp: 0.0.0.0/0
+          Description: Streamlit web application.
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-instance-sg'
+
+  # Launch the requested small instance in the public subnet.
+  StudentEC2Instance:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-0fef201115eefe936
+      InstanceType: t2.micro
+      SubnetId: !Ref StudentPublicSubnet
+      SecurityGroupIds:
+        - !GetAtt StudentInstanceSecurityGroup.GroupId
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-instance'
+
+Outputs:
+  InstancePublicIP:
+    Description: Public IPv4 address of the EC2 instance.
+    Value: !GetAtt StudentEC2Instance.PublicIp
+  InstancePublicDNS:
+    Description: Public DNS name of the EC2 instance.
+    Value: !GetAtt StudentEC2Instance.PublicDnsName
